@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
+	_"github.com/lib/pq"
 	"log"
 	"net/http"
 )
@@ -28,18 +28,24 @@ const (
 	dbname   = "books-list"
 )
 
+func logFatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
+
 	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err) }
+	logFatal(err)
+
 	err = db.Ping()
-	if err != nil {
-		panic(err) }
+
 	fmt.Println("Successfully connected!")
-	db.Close()
+	// db.Close()
 
 	router := mux.NewRouter()
 
@@ -61,13 +67,13 @@ func getBooks(w http.ResponseWriter, r *http.Request) {
 	books = []Book{}
 
 	rows, err := db.Query("select * from books")
-	log.Fatal(err)
+	logFatal(err)
 
 	defer rows.Close()
 
 	for rows.Next() {
 		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Year)
-		log.Fatal(err)
+		logFatal(err)
 
 		books = append(books, book)
 	}
