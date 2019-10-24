@@ -1,11 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type Book struct {
@@ -16,15 +18,30 @@ type Book struct {
 }
 
 var books []Book
+var db *sql.DB
+
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = ""
+	dbname   = "books-list"
+)
 
 func main() {
-	router := mux.NewRouter()
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err) }
+	err = db.Ping()
+	if err != nil {
+		panic(err) }
+	fmt.Println("Successfully connected!")
+	db.Close()
 
-	books = append(books, Book{ID: 1, Title: "Golang Pointers", Author: "Mr. Golang", Year: "2010"},
-		Book{ID: 2, Title:"Go Routines", Author: "Mr GoRoutine", Year: "2011"},
-		Book{ID: 3, Title: "Golang Routers", Author: "Mr Router", Year: "2012"},
-		Book{ID: 4, Title: "Golang Concurrency", Author: "Mr Concurrency", Year: "2013"},
-		Book{ID: 5, Title: "Golang Good Parts", Author: "Mr Good", Year: "2014"})
+	router := mux.NewRouter()
 
 	router.HandleFunc("/books", getBooks).Methods("GET")
 	router.HandleFunc("/books/{id}", getBook).Methods("GET")
@@ -32,33 +49,44 @@ func main() {
 	router.HandleFunc("/books", updateBook).Methods("PUT")
 	router.HandleFunc("/books/{id}", removeBook).Methods("DELETE")
 
+	fmt.Println("Starting server on port :8000")
+
 	log.Fatal(http.ListenAndServe(":8000", router))
+
+
 }
 
 func getBooks(w http.ResponseWriter, r *http.Request) {
+	var book Book
+	books = []Book{}
+
+	rows, err := db.Query("select * from books")
+	log.Fatal(err)
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Year)
+		log.Fatal(err)
+
+		books = append(books, book)
+	}
+
 	json.NewEncoder(w).Encode(books)
 }
 
 func getBook(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 
-	i, _ := strconv.Atoi(params["id"])
-
-	for _, book := range books {
-		if book.ID == i {
-			json.NewEncoder(w).Encode(&book)
-		}
-	}
 }
 
 func addBook(w http.ResponseWriter, r *http.Request) {
-	log.Println("Add book is called")
+
 }
 
 func updateBook(w http.ResponseWriter, r *http.Request) {
-	log.Println("Updaste book is called")
+
 }
 
 func removeBook(w http.ResponseWriter, r *http.Request) {
-	log.Println("Remove book is called")
+
 }
