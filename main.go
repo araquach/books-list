@@ -58,7 +58,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/books", getBooks).Methods("GET")
-	//r.HandleFunc("/books/{id}", getBook).Methods("GET")
+	r.HandleFunc("/books/{id}", getBook).Methods("GET")
 	//r.HandleFunc("/books", addBook).Methods("POST")
 	//r.HandleFunc("/books", updateBook).Methods("PUT")
 	//r.HandleFunc("/books/{id}", removeBook).Methods("DELETE")
@@ -82,10 +82,22 @@ func getBooks(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-//func getBook(w http.ResponseWriter, r *http.Request) {
-//
-//}
-//
+func getBook(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	db := dbConn()
+	books := []Book{}
+	id :=  
+
+	db.First(&books, id)
+	db.Close()
+
+	json, err := json.Marshal(books)
+	if err != nil {
+		log.Println(err)
+	}
+	w.Write(json)
+}
+
 //func addBook(w http.ResponseWriter, r *http.Request) {
 //
 //}
