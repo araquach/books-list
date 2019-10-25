@@ -1,13 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	_"github.com/lib/pq"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 )
 
 type Book struct {
@@ -17,82 +19,81 @@ type Book struct {
 	Year	string	`json:"year"`
 }
 
-var books []Book
-var db *sql.DB
-
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = ""
-	dbname   = "books-list"
-)
-
-func logFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
+func init() {
+	// loads values from .env into the system
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
 	}
+}
+
+func dbConn() (db *gorm.DB) {
+	dbhost     := os.Getenv("DB_HOST")
+	dbport     := os.Getenv("DB_PORT")
+	dbuser     := os.Getenv("DB_USER")
+	dbpassword := os.Getenv("DB_PASSWORD")
+	dbname     := os.Getenv("DB_NAME")
+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		dbhost, dbport, dbuser, dbpassword, dbname)
+
+	db, err := gorm.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func main() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
 
-	db, err := sql.Open("postgres", psqlInfo)
-	logFatal(err)
+	db := dbConn()
+	db.AutoMigrate(&Book{})
+	db.Close()
+	db.LogMode(true)
 
-	err = db.Ping()
+	r := mux.NewRouter()
 
-	fmt.Println("Successfully connected!")
-	// db.Close()
+	r.HandleFunc("/books", getBooks).Methods("GET")
+	//r.HandleFunc("/books/{id}", getBook).Methods("GET")
+	//r.HandleFunc("/books", addBook).Methods("POST")
+	//r.HandleFunc("/books", updateBook).Methods("PUT")
+	//r.HandleFunc("/books/{id}", removeBook).Methods("DELETE")
 
-	router := mux.NewRouter()
+	log.Printf("Starting server on %s", port)
 
-	router.HandleFunc("/books", getBooks).Methods("GET")
-	router.HandleFunc("/books/{id}", getBook).Methods("GET")
-	router.HandleFunc("/books", addBook).Methods("POST")
-	router.HandleFunc("/books", updateBook).Methods("PUT")
-	router.HandleFunc("/books/{id}", removeBook).Methods("DELETE")
-
-	fmt.Println("Starting server on port :8000")
-
-	log.Fatal(http.ListenAndServe(":8000", router))
-
-
+	http.ListenAndServe(":" + port, r)
 }
 
 func getBooks(w http.ResponseWriter, r *http.Request) {
-	var book Book
-	books = []Book{}
+	w.Header().Set("Content-Type", "application/json")
+	db := dbConn()
+	books := []Book{}
+	db.Find(&books)
+	db.Close()
 
-	rows, err := db.Query("select * from books")
-	logFatal(err)
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Year)
-		logFatal(err)
-
-		books = append(books, book)
+	json, err := json.Marshal(books)
+	if err != nil {
+		log.Println(err)
 	}
-
-	json.NewEncoder(w).Encode(books)
+	w.Write(json)
 }
 
-func getBook(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func addBook(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func updateBook(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func removeBook(w http.ResponseWriter, r *http.Request) {
-
-}
+//func getBook(w http.ResponseWriter, r *http.Request) {
+//
+//}
+//
+//func addBook(w http.ResponseWriter, r *http.Request) {
+//
+//}
+//
+//func updateBook(w http.ResponseWriter, r *http.Request) {
+//
+//}
+//
+//func removeBook(w http.ResponseWriter, r *http.Request) {
+//
+//}
