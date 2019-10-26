@@ -24,8 +24,8 @@ const (
 	host     = "localhost"
 	port     = 5432
 	user     = "postgres"
-	password = ""
-	dbname   = "books-list"
+	password = "test123"
+	dbname   = "book-store"
 )
 
 func logFatal(err error) {
@@ -45,7 +45,7 @@ func main() {
 	err = db.Ping()
 
 	fmt.Println("Successfully connected!")
-	// db.Close()
+	db.Close()
 
 	router := mux.NewRouter()
 
@@ -86,7 +86,7 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func addBook(w http.ResponseWriter, r *http.Request) {
-
+	
 }
 
 func updateBook(w http.ResponseWriter, r *http.Request) {
