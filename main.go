@@ -86,7 +86,7 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	db := dbConn()
 	books := []Book{}
-	id :=  
+	id :=
 
 	db.First(&books, id)
 	db.Close()
