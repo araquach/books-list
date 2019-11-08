@@ -86,7 +86,8 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	db := dbConn()
 	books := []Book{}
-	id :=
+	params := mux.Vars(r)
+	id := params["id"]
 
 	db.First(&books, id)
 	db.Close()
@@ -98,10 +99,10 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-//func addBook(w http.ResponseWriter, r *http.Request) {
-//
-//}
-//
+func addBook(w http.ResponseWriter, r *http.Request) {
+
+}
+
 //func updateBook(w http.ResponseWriter, r *http.Request) {
 //
 //}
